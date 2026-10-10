@@ -6,7 +6,8 @@
 <title>KIRA·KIRA atelier — photo play for anime &amp; art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DotGothic16&family=Caveat:wght@600&family=Special+Elite&display=swap" rel="stylesheet">
+<!-- non-blocking: if Google Fonts is unreachable (e.g. mainland China) the page still renders with system fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DotGothic16&family=Caveat:wght@600&family=Special+Elite&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -17,6 +18,7 @@
     <span class="brand-name">KIRA·KIRA</span>
     <span class="brand-sub">atelier</span>
     <a class="brand-link" href="darkroom/index.html" title="The first version: Flow Paint, Pixel Sort, Halftone, Weave">→ Darkroom</a>
+    <a class="brand-link brand-link--new" href="make.html" data-track="atelier-to-make" title="Write a note, get a WeChat poster friends wipe open">✦ 雾里的悄悄话 · Fog note</a>
   </div>
   <nav class="tabs" id="tabs" aria-label="Tools"></nav>
 </header>

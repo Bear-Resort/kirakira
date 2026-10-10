@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbf5ea">
+<meta name="format-detection" content="telephone=no">
+<title>雾里的悄悄话 · 做一张海报 · KIRA·KIRA</title>
+<meta name="description" content="写一句话，生成一张能发朋友圈的海报。朋友长按识别二维码，用手指擦开雾气才能看到。">
+<link rel="stylesheet" href="css/share.css">
+</head>
+<body class="make">
+<header class="bar">
+  <a class="brand" href="./" data-track="make-brand">✦ KIRA·KIRA <small data-i18n="back_atelier">回到工作室</small></a>
+  <button class="lang" id="lang" type="button" aria-label="Switch to English">EN</button>
+</header>
+
+<main class="make-main">
+  <section class="intro">
+    <h1 data-i18n="make_title">雾里的悄悄话</h1>
+    <p data-i18n="make_lead">写一句话，生成一张海报。朋友长按识别二维码，要用手指擦开雾气才能看到。</p>
+  </section>
+  <p class="banner" id="localBanner" role="note" hidden data-i18n="local_banner"></p>
+
+  <div class="make-grid">
+    <form class="panel" id="form" novalidate>
+      <div class="group">
+        <label for="msg" data-i18n="field_message">悄悄话</label>
+        <div class="field">
+          <textarea id="msg" name="message" rows="3" aria-describedby="msgCount msgErr" aria-invalid="false"></textarea>
+          <span class="count" id="msgCount" aria-live="polite">0/30</span>
+        </div>
+        <p class="err" id="msgErr" hidden></p>
+      </div>
+      <div class="group">
+        <label for="from" data-i18n="field_from">署名（可不填）</label>
+        <input type="text" id="from" name="from" autocomplete="nickname" enterkeyhint="done" aria-describedby="fromErr" aria-invalid="false">
+        <p class="err" id="fromErr" hidden></p>
+      </div>
+      <fieldset>
+        <legend data-i18n="field_theme">颜色</legend>
+        <div class="themes" id="themes"></div>
+      </fieldset>
+      <div class="actions">
+        <button class="btn btn-primary" id="create" type="submit" data-i18n="create">生成海报</button>
+        <a class="btn" id="tryFirst" href="play.html" target="_blank" rel="noopener" data-i18n="try_first" data-track="make-try">先自己试试</a>
+      </div>
+    </form>
+
+    <figure class="preview">
+      <canvas id="preview" width="810" height="1080" role="img" aria-label="海报预览"></canvas>
+      <figcaption data-i18n="preview_label">海报预览</figcaption>
+    </figure>
+  </div>
+</main>
+
+<div class="overlay" id="result" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+  <div class="overlay-card">
+    <button class="close-x" id="resultClose" type="button" aria-label="关闭">×</button>
+    <h2 id="resultTitle" tabindex="-1" data-i18n="result_title">海报做好了 ✦</h2>
+    <img id="posterImg" alt="">
+    <p class="hint" id="resultHint"></p>
+    <div class="actions">
+      <a class="btn btn-primary" id="download" href="#" download="kirakira-poster.png" data-i18n="download_poster" data-track="poster-download">下载海报</a>
+      <button class="btn" id="copy" type="button" data-i18n="copy_link" data-track="poster-copy">复制链接</button>
+      <a class="btn btn-quiet" id="openLink" href="#" target="_blank" rel="noopener" data-i18n="open_link" data-track="poster-open">打开链接</a>
+    </div>
+    <input class="link-field" id="linkField" type="text" readonly aria-label="链接">
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<noscript><p class="banner">这个页面需要开启 JavaScript。 This page needs JavaScript.</p></noscript>
+
+<script src="js/share/qr.js"></script>
+<script src="js/share/core.js"></script>
+<script src="js/share/make.js"></script>
+<script src="js/stats.js"></script>
+</body>
+</html>

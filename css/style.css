@@ -61,6 +61,8 @@ button, input, select { font-family: inherit; color: inherit; }
   border-bottom: 2px dotted var(--pink);
 }
 .brand-link:hover { color: var(--pink); }
+.brand-link--new { color: var(--ink); background: var(--sun); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; }
+.brand-link--new:hover { color: var(--ink); background: var(--pink-soft); }
 .brand-sub { font-family: "Caveat", cursive; font-size: 1.5rem; color: var(--lav); }
 
 @keyframes twinkle {
