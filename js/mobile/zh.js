@@ -160,6 +160,9 @@ window.KK_ZH = {
     'Show': '显示', 'Camera colour': '相机颜色', 'Tablecloth': '桌布', 'White balance': '白平衡', 'Resolution': '分辨率',
     'Screen icons (frame no., battery, date)': '屏幕图标（张数、电量、日期）',
     'Finding the object…': '正在找主体…',
+    'Could not export the layers — try Save as PNG.': '导出图层失败，试试直接保存图片。',
+    'Packing the layers…': '正在打包图层…',
+    'Waking up the AI cutter (first time takes a few seconds)…': '正在唤醒 AI 抠图（第一次要几秒钟）…',
     "Cold blue '89": "冷蓝 '89", "Warm '77 + light leak": "暖黄 '77 + 漏光",
   },
   // labels that mean different things in different effects

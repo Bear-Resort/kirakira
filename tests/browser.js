@@ -276,8 +276,8 @@
       App.current.wheel = ow;
       assert(wheels > 0, 'no zoom');
       w.__kkShell.openSave();
-      await sleep(900);
       const img = d.getElementById('saveImg');
+      for (let i = 0; i < 50 && (d.getElementById('saveBox').hidden || img.naturalWidth < 100); i++) await sleep(100);
       assert(!d.getElementById('saveBox').hidden && img.naturalWidth > 100, 'save sheet');
       return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
     });
