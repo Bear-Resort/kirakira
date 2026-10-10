@@ -9,7 +9,7 @@
 <meta name="description" content="有人在雾里给你留了一句话，用手指擦开看看。 Someone left you a note in the fog — wipe it away to read it.">
 <meta property="og:title" content="有一句话藏在雾里 ✦">
 <meta property="og:description" content="用手指擦开雾气看看 · Wipe the fog to read it">
-<link rel="stylesheet" href="css/share.css?v=202610101223">
+<link rel="stylesheet" href="css/share.css?v=202610101308">
 </head>
 <body class="play">
 <header class="bar">
@@ -64,15 +64,16 @@
     <h2 id="saveTitle" tabindex="-1" data-i18n="save_pic">保存图片</h2>
     <img id="saveImg" alt="">
     <p class="hint" id="saveHint"></p>
-    <div class="actions"><a class="btn btn-primary" id="saveDownload" download="kirakira-note.png" href="#" data-i18n="download" data-track="play-download">下载图片</a></div>
+    <div class="actions"><button class="btn btn-primary" id="saveToPhotos" type="button" data-i18n="save_to_photos" data-track="play-save-photos">保存到相册</button></div>
   </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <noscript><p class="bad">这个小游戏需要开启 JavaScript。 This page needs JavaScript.</p></noscript>
 
-<script src="js/share/core.js?v=202610101223"></script>
-<script src="js/share/play.js?v=202610101223"></script>
-<script src="js/stats.js?v=202610101223"></script>
+<script src="js/share/core.js?v=202610101308"></script>
+<script src="js/share/save.js?v=202610101308"></script>
+<script src="js/share/play.js?v=202610101308"></script>
+<script src="js/stats.js?v=202610101308"></script>
 </body>
 </html>

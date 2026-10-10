@@ -96,6 +96,9 @@
     $('again').addEventListener('click', playAgain);
     $('save').addEventListener('click', openSave);
     $('saveClose').addEventListener('click', closeSave);
+    $('saveToPhotos').addEventListener('click', () => {
+      if (saveItem) window.KKSave.save(saveItem, lang).then(r => track('play-save-' + r));
+    });
     $('saveBox').addEventListener('click', e => { if (e.target === e.currentTarget) closeSave(); });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !$('saveBox').hidden) closeSave();
@@ -305,19 +308,20 @@
   }
 
   // ---------------- save ----------------
-  let lastFocus = null;
+  let lastFocus = null, saveItem = null;
   function openSave() {
     lastFocus = document.activeElement;
-    const url = KK.renderCard(Object.assign({}, data, { lang }), 1).toDataURL('image/png');
-    const img = $('saveImg');
-    img.src = url;
-    img.alt = noteText();
-    const dl = $('saveDownload');
-    dl.href = url;
-    dl.parentElement.hidden = inWeChat; // WeChat's browser ignores downloads; long-press works instead
-    $('saveBox').hidden = false;
-    $('saveTitle').focus({ preventScroll: true });
-    track('play-save');
+    const card = KK.renderCard(Object.assign({}, data, { lang }), 1);
+    window.KKSave.prepare(card, 'kirakira-note.png').then(item => {
+      saveItem = item;
+      const img = $('saveImg');
+      img.src = item.url;
+      img.alt = noteText();
+      $('saveToPhotos').textContent = window.KKSave.label(item, lang);
+      $('saveBox').hidden = false;
+      $('saveTitle').focus({ preventScroll: true });
+      track('play-save');
+    });
   }
   function closeSave() {
     $('saveBox').hidden = true;

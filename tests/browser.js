@@ -154,8 +154,11 @@
       assert(!d.getElementById('done').hidden, 'sheet visible');
       assert(d.getElementById('stage').getAttribute('aria-label').includes(NOTE.message), 'screen-reader label has the note');
       d.getElementById('save').click();
-      await sleep(200);
-      assert(d.getElementById('saveImg').naturalWidth === 1000, 'save image rendered');
+      const t1 = Date.now();
+      while (Date.now() - t1 < 8000 && (d.getElementById('saveBox').hidden || !d.getElementById('saveImg').src.startsWith('data:'))) await sleep(100);
+      const card = await createImageBitmap(await (await fetch(d.getElementById('saveImg').src)).blob());
+      assert(card.width === 1000, 'save image rendered ' + card.width);
+      assert(!d.getElementById('saveToPhotos').hidden, 'a save-to-photos button is shown');
       d.getElementById('saveClose').click();
       d.getElementById('again').click();
       await sleep(50);
@@ -208,15 +211,19 @@
       set('msg', NOTE.message); set('from', NOTE.from);
       d.querySelector('input[name=theme][value=cream]').click();
       d.getElementById('create').click();
-      await sleep(1200);
+      const t1 = Date.now();
+      while (Date.now() - t1 < 10000 && d.getElementById('result').hidden) await sleep(100);
       const open = !d.getElementById('result').hidden;
       const link = d.getElementById('linkField').value;
       const img = d.getElementById('posterImg');
+      const poster = await createImageBitmap(await (await fetch(img.src)).blob());
+      const saveBtn = d.getElementById('savePoster').textContent;
       const u = new URL(link);
       const parsed = KK.parsePlayParams(u.hash, u.search);
       f.remove();
       assert(open, 'result dialog opened');
-      assert(img.naturalWidth === 1080, 'poster image ' + img.naturalWidth);
+      assert(poster.width === 1080, 'poster image ' + poster.width);
+      assert(saveBtn.length > 0, 'save button labelled');
       assert(parsed.message === NOTE.message && parsed.from === NOTE.from, 'link round-trips');
       return 'ok';
     });
@@ -230,6 +237,27 @@
       const r = d.getElementById('result').hidden && !d.getElementById('msgErr').hidden && d.getElementById('msg').getAttribute('aria-invalid') === 'true';
       f.remove();
       return r;
+    });
+
+    await check('saving inside WeChat: small JPEG, long-press image sits directly under <body>', async () => {
+      // a blank frame that pretends to be WeChat, then loads the real save helper
+      const f = document.createElement('iframe'); document.body.append(f);
+      const w = f.contentWindow;
+      Object.defineProperty(w.navigator, 'userAgent', { get: () => 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/116 Mobile Safari/537.36 MicroMessenger/8.0.47' });
+      await new Promise((res, rej) => { const sc = w.document.createElement('script'); sc.src = root + 'js/share/save.js'; sc.onload = res; sc.onerror = rej; w.document.head.append(sc); });
+      // a busy, photo-like poster: worst case for JPEG size
+      const c = w.document.createElement('canvas'); c.width = 1080; c.height = 1440; const x = c.getContext('2d');
+      const r = KK.rng(9); for (let i = 0; i < 4000; i++) { x.fillStyle = `hsl(${r() * 360},70%,${30 + r() * 50}%)`; x.fillRect(r() * 1080, r() * 1440, 6 + r() * 60, 6 + r() * 60); }
+      const item = await w.KKSave.prepare(c, 'poster.png');
+      assert(item.mode === 'wechat', 'mode ' + item.mode);
+      assert(item.blob.type === 'image/jpeg' && item.name.endsWith('.jpg'), 'type ' + item.blob.type);
+      assert(item.blob.size < 460e3, `too big for Android WeChat: ${Math.round(item.blob.size / 1024)} KB`);
+      await w.KKSave.save(item, 'zh');
+      const img = Array.from(w.document.body.children).find(el => el.tagName === 'IMG');
+      assert(img && img.src.startsWith('data:image/jpeg'), 'no long-press image directly under <body>');
+      const kb = Math.round(item.blob.size / 1024);
+      f.remove();
+      return `${kb} KB JPEG`;
     });
 
     // ---------------- phone app ----------------

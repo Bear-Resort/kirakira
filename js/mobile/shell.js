@@ -32,8 +32,8 @@
       adjust: '调整', save: '保存', change_photo: '换照片', more: '更多设置', filters: '滤镜（所有玩法都适用）',
       done: '好了', got_it: '知道了', saved_title: '做好了 ✦', save_to_photos: '保存到相册', download: '下载图片',
       make_note: '做成悄悄话海报', adjust_title: '调整 · {name}', back: '返回', help: '怎么玩', close: '关闭',
-      save_hint_wechat: '长按图片，选「保存图片」', save_hint_share: '点「保存到相册」，在菜单里选「存储图像」',
-      save_hint_other: '点「下载图片」，也可以长按或右键图片保存', photo_ready: '照片换好了 ✦', photo_b_ready: '第二张照片好了 ✦',
+      save_hint_wechat: '点「保存到相册」，再长按图片选「保存图片」', save_hint_share: '点「保存到相册」，在菜单里选「存储图像」',
+      save_hint_other: '点「保存到相册」；电脑上会下载图片', photo_ready: '照片换好了 ✦', photo_b_ready: '第二张照片好了 ✦',
       saved: '已保存 ✦', share_failed: '没能打开分享，长按图片保存吧', preparing: '正在准备图片…',
       lang_toggle: 'EN', lang_label: 'Switch to English', strip_label: '玩法', editor_label: '编辑',
       not_image: '这不是图片，换一张 JPG 或 PNG 试试', read_fail: '读不了这张照片，换一张试试',
@@ -46,8 +46,8 @@
       adjust: 'Adjust', save: 'Save', change_photo: 'Photo', more: 'More settings', filters: 'Filters (for every effect)',
       done: 'Done', got_it: 'Got it', saved_title: 'All done ✦', save_to_photos: 'Save to Photos', download: 'Download',
       make_note: 'Make a fog-note poster', adjust_title: 'Adjust · {name}', back: 'Back', help: 'How to play', close: 'Close',
-      save_hint_wechat: 'Long-press the picture, then choose “Save Image”', save_hint_share: 'Tap “Save to Photos”, then choose “Save Image”',
-      save_hint_other: 'Tap “Download”, or long-press / right-click the picture', photo_ready: 'Photo ready ✦', photo_b_ready: 'Second photo ready ✦',
+      save_hint_wechat: 'Tap “Save to Photos”, then long-press the picture and choose “Save Image”', save_hint_share: 'Tap “Save to Photos”, then choose “Save Image”',
+      save_hint_other: 'Tap “Save to Photos” (on a computer it downloads)', photo_ready: 'Photo ready ✦', photo_b_ready: 'Second photo ready ✦',
       saved: 'Saved ✦', share_failed: 'Couldn’t open sharing — long-press the picture to save it', preparing: 'Getting your picture ready…',
       lang_toggle: '中', lang_label: '切换到中文', strip_label: 'Effects', editor_label: 'Editor',
       not_image: 'That isn’t a picture — try a JPG or PNG', read_fail: 'Couldn’t read that photo — try another one',
@@ -280,26 +280,20 @@
   }
 
   // ---------------- save ----------------
-  let saveFile = null;
+  // KKSave (js/share/save.js) picks share sheet / WeChat long-press / download, whichever reaches the photo album.
+  let saveItem = null;
   function openSave() {
     if (!App.A) { App.toast('Add a picture first ✦'); return; }
     const src = (App.current.exportCanvas && App.current.exportCanvas()) || App.canvas;
     App.busy(m('preparing'));
     // let the spinner paint before the (blocking) encode
     setTimeout(() => {
-      let url;
-      try { url = src.toDataURL('image/png'); } catch (e) { App.busy(null); App.toast(m('read_fail')); return; }
-      const name = `kirakira-${App.current.id}.png`;
-      fetch(url).then(r => r.blob()).then(blob => {
-        saveFile = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-        const canShare = !inWeChat && saveFile && navigator.canShare && navigator.canShare({ files: [saveFile] });
-        $('saveImg').src = url;
+      window.KKSave.prepare(src, `kirakira-${App.current.id}.png`).then(item => {
+        saveItem = item;
+        $('saveImg').src = item.url;
         $('saveImg').alt = toolName(App.current);
-        $('shareFile').hidden = !canShare;
-        const dl = $('downloadFile');
-        dl.hidden = inWeChat || canShare;
-        dl.href = url; dl.download = name;
-        $('saveHint').textContent = m(inWeChat ? 'save_hint_wechat' : canShare ? 'save_hint_share' : 'save_hint_other');
+        $('shareFile').textContent = window.KKSave.label(item, lang);
+        $('saveHint').textContent = m(item.mode === 'wechat' ? 'save_hint_wechat' : item.mode === 'share' ? 'save_hint_share' : 'save_hint_other');
         App.busy(null);
         openSheet('saveBox', 'saveTitle');
         track('m-save-' + App.current.id);
@@ -307,15 +301,10 @@
     }, 30);
   }
   async function shareFile() {
-    if (!saveFile) return;
-    try {
-      await navigator.share({ files: [saveFile], title: 'KIRA·KIRA' });
-      origToast(m('saved'), 1800);
-    } catch (e) {
-      if (e && e.name === 'AbortError') return; // the person closed the share sheet
-      origToast(m('share_failed'), 3200);
-      $('downloadFile').hidden = false;
-    }
+    if (!saveItem) return;
+    const r = await window.KKSave.save(saveItem, lang);
+    if (r === 'shared') origToast(m('saved'), 1800);
+    track('m-save-' + r);
   }
 
   // ---------------- touch: pinch → wheel, double-tap → dblclick ----------------

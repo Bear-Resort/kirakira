@@ -14,7 +14,7 @@
   const tx = (k, v) => KK.t(lang, k, v);
   const playBase = new URL('play.html', location.href).href.replace(/[#?].*$/, '');
   const touched = { message: false, from: false };
-  let themeId = 'cream', previewTimer = 0, draftTimer = 0, lastPreviewKey = '', lastFocus = null, toastTimer = 0;
+  let themeId = 'cream', previewTimer = 0, draftTimer = 0, lastPreviewKey = '', lastFocus = null, toastTimer = 0, posterItem = null;
 
   // ---------------- form state ----------------
   const read = () => ({ message: $('msg').value, from: $('from').value, theme: themeId });
@@ -155,20 +155,20 @@
     setTimeout(() => {
       try {
         const { canvas } = KK.renderPoster({ message: v.message, from: v.from, theme: themeId }, url, QR);
-        const png = canvas.toDataURL('image/png');
-        const img = $('posterImg');
-        img.src = png;
-        img.alt = tx('poster_headline') + ' — ' + v.message;
-        const dl = $('download');
-        dl.href = png;
-        dl.hidden = inWeChat; // WeChat's browser ignores downloads; long-press the poster instead
-        $('openLink').href = url;
-        $('linkField').value = url;
-        openResult();
-        track('poster-create');
+        window.KKSave.prepare(canvas, 'kirakira-poster.png').then(item => {
+          posterItem = item;
+          const img = $('posterImg');
+          img.src = item.url;
+          img.alt = tx('poster_headline') + ' — ' + v.message;
+          $('savePoster').textContent = window.KKSave.label(item, lang);
+          $('openLink').href = url;
+          $('linkField').value = url;
+          openResult();
+          track('poster-create');
+        }).catch(() => toast(lang === 'zh' ? '生成失败，请再试一次' : 'Couldn’t create the poster. Try again.', true))
+          .then(() => { btn.removeAttribute('aria-busy'); btn.textContent = tx('create'); });
       } catch (err) {
         toast(lang === 'zh' ? '生成失败，请再试一次' : 'Couldn’t create the poster. Try again.', true);
-      } finally {
         btn.removeAttribute('aria-busy');
         btn.textContent = tx('create');
       }
@@ -230,6 +230,13 @@
       track('lang-' + lang);
     });
     $('copy').addEventListener('click', copyLink);
+    $('savePoster').addEventListener('click', () => {
+      if (!posterItem) return;
+      window.KKSave.save(posterItem, lang).then(r => {
+        if (r === 'shared') toast(window.KKSave.t(lang, 'saved'));
+        track('poster-save-' + r);
+      });
+    });
     $('resultClose').addEventListener('click', closeResult);
     $('result').addEventListener('click', e => { if (e.target === e.currentTarget) closeResult(); });
     $('linkField').addEventListener('focus', e => e.target.select());
