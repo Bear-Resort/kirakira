@@ -17,6 +17,8 @@
   const noop = { use() {}, count() { return Promise.resolve(null); } };
   window.KKStats = noop;
   if (!GC_CODE) return;
+  // Framed copies (our own self-test, or another site embedding us) are not real visits.
+  if (window.top !== window.self) return;
 
   const base = `https://${GC_CODE}.goatcounter.com`;
   const s = document.createElement('script');
