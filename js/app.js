@@ -467,8 +467,11 @@
      MediaPipe's "Magic Touch" interactive segmenter: you give it one point and it
      returns a mask of the object under that point. Loaded lazily from a CDN. */
 
-  const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
-  const MODEL = 'https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite';
+  // Served from our own site (vendor/) so the AI cutout also works in mainland China.
+  // Absolute URLs: dynamic import() would otherwise resolve against js/, not the page.
+  App.asset = path => new URL(path, document.baseURI).href;
+  const MP = App.asset('vendor/mediapipe-tasks-vision-0.10.14');
+  const MODEL = App.asset('vendor/models/magic_touch.tflite');
   let segPromise = null;
 
   App.loadSegmenter = function () {
@@ -599,7 +602,7 @@
     c.addEventListener('contextmenu', e => e.preventDefault());
     c.addEventListener('pointerdown', e => {
       if (!App.A) return;
-      c.setPointerCapture(e.pointerId);
+      try { c.setPointerCapture(e.pointerId); } catch (err) { /* old WebViews / synthetic events */ }
       const p = canvasPoint(e);
       Object.assign(App.pointer, p, { down: true, inside: true });
       if (App.current.down) App.current.down(p, e);

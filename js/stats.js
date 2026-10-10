@@ -61,7 +61,7 @@
   }, true);
 
   // Public visit badge — only on the atelier tools, not on the note pages.
-  if (document.body.classList.contains('play') || document.body.classList.contains('make')) return;
+  if (['play', 'make', 'm'].some(c => document.body.classList.contains(c))) return;
   count('TOTAL').then(n => {
     if (!n) return;
     const badge = document.createElement('div');

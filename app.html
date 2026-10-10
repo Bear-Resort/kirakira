@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbf5ea">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KIRA·KIRA">
+<title>KIRA·KIRA · 把照片变好玩</title>
+<meta name="description" content="13 种照片玩法：雾窗、镭射贴纸、亚克力挂件、吧唧、CCD 相机… 照片不会上传。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- non-blocking: if Google Fonts is unreachable (mainland China) the app renders with system fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DotGothic16&family=Caveat:wght@600&family=Special+Elite&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/share.css">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body class="m">
+
+<!-- ============ home ============ -->
+<section class="screen home" id="home" aria-labelledby="homeTitle">
+  <header class="bar">
+    <span class="brand">✦ KIRA·KIRA</span>
+    <button class="lang" id="lang" type="button" aria-label="Switch to English">EN</button>
+  </header>
+  <div class="home-main">
+    <h1 id="homeTitle" data-m="home_title">把照片变好玩</h1>
+    <p class="home-sub" data-m="home_sub">13 种玩法 · 照片只在你手机里，不会上传</p>
+    <button class="pick" id="pickA" type="button" data-track="m-pick">
+      <span class="pick-plus" aria-hidden="true">+</span>
+      <span class="pick-text" data-m="pick_photo">选一张照片</span>
+    </button>
+    <button class="btn demo-btn" id="tryDemo" type="button" data-m="try_demo" data-track="m-demo">先用示例图玩玩</button>
+    <h2 class="home-h" data-m="all_effects">所有玩法</h2>
+    <div class="tiles" id="tiles"></div>
+    <a class="home-link" href="make.html" data-track="m-to-note"><span data-m="note_link">✦ 雾里的悄悄话：做一张能擦开的海报</span> →</a>
+    <a class="home-link quiet" href="index.html?desktop" data-m="desktop_link">电脑版</a>
+  </div>
+</section>
+
+<!-- ============ editor ============ -->
+<section class="screen editor" id="editor" hidden aria-label="Editor">
+  <header class="ed-top">
+    <button class="icon-btn" id="backHome" type="button" aria-label="返回">‹</button>
+    <h1 class="ed-title"><span id="edIcon" aria-hidden="true"></span> <span id="edName"></span></h1>
+    <button class="icon-btn" id="helpBtn" type="button" aria-label="怎么玩">?</button>
+  </header>
+
+  <div class="stage-area" id="stageArea">
+    <div class="stage" id="stage">
+      <canvas id="canvas" width="800" height="600"></canvas>
+      <div class="busy" id="busy" hidden><span class="spinner"></span><span id="busyText">…</span></div>
+      <div class="dropveil" id="dropveil" hidden></div>
+    </div>
+    <p class="coach" id="coach" role="status"></p>
+  </div>
+
+  <div class="needb" id="needB" hidden>
+    <span data-m="need_b">这个玩法要两张照片，现在用的是自动生成的第二张</span>
+    <button class="mini-btn" id="pickB" type="button" data-m="pick_b">选第二张</button>
+  </div>
+
+  <nav class="strip" id="strip" aria-label="玩法"></nav>
+
+  <footer class="ed-bar">
+    <button class="bar-btn" id="adjustBtn" type="button"><span aria-hidden="true">⚙</span><span data-m="adjust">调整</span></button>
+    <button class="btn btn-primary save-btn" id="saveBtn" type="button" data-m="save" data-track="m-save">保存</button>
+    <button class="bar-btn" id="changePhoto" type="button"><span aria-hidden="true">🖼</span><span data-m="change_photo">换照片</span></button>
+  </footer>
+</section>
+
+<!-- ============ adjust sheet ============ -->
+<div class="sheet-backdrop" id="adjustBox" hidden>
+  <section class="msheet" role="dialog" aria-modal="true" aria-labelledby="adjustTitle">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="adjustTitle" tabindex="-1"></h2>
+    <div class="quick" id="quick"></div>
+    <div class="controls" id="toolControls"></div>
+    <details class="more" id="moreBox">
+      <summary data-m="more">更多设置</summary>
+      <div id="moreControls"></div>
+      <h3 class="more-h" data-m="filters">滤镜（所有玩法都适用）</h3>
+      <div class="presets" id="presets"></div>
+      <div id="filterSliders"></div>
+    </details>
+    <button class="btn btn-primary done-btn" id="adjustDone" type="button" data-m="done">好了</button>
+  </section>
+</div>
+
+<!-- ============ help sheet ============ -->
+<div class="sheet-backdrop" id="helpBox" hidden>
+  <section class="msheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="grip" aria-hidden="true"></div>
+    <h2 id="helpTitle" tabindex="-1"></h2>
+    <p class="help-howto" id="helpHowto"></p>
+    <p class="help-long" id="toolHint"></p>
+    <button class="btn btn-primary done-btn" id="helpDone" type="button" data-m="got_it">知道了</button>
+  </section>
+</div>
+
+<!-- ============ save ============ -->
+<div class="overlay" id="saveBox" role="dialog" aria-modal="true" aria-labelledby="saveTitle" hidden>
+  <div class="overlay-card">
+    <button class="close-x" id="saveClose" type="button" aria-label="关闭">×</button>
+    <h2 id="saveTitle" tabindex="-1" data-m="saved_title">做好了 ✦</h2>
+    <img id="saveImg" alt="">
+    <p class="hint" id="saveHint"></p>
+    <div class="actions">
+      <button class="btn btn-primary" id="shareFile" type="button" data-m="save_to_photos" data-track="m-share-file">保存到相册</button>
+      <a class="btn btn-primary" id="downloadFile" href="#" download="kirakira.png" data-m="download" data-track="m-download">下载图片</a>
+      <a class="btn" href="make.html" data-m="make_note" data-track="m-save-to-note">做成悄悄话海报</a>
+    </div>
+  </div>
+</div>
+
+<!-- engine hooks the effects expect; not shown on phones -->
+<div class="engine-hooks" aria-hidden="true">
+  <h1 id="toolTitle"></h1>
+  <nav id="tabs"></nav>
+  <label id="dropA"><input type="file" accept="image/*" id="fileA"><span id="thumbA"></span></label>
+  <label id="dropB"><input type="file" accept="image/*" id="fileB"><span id="thumbB"></span></label>
+  <button id="demoBtn" type="button"></button>
+  <button id="exportBtn" type="button"></button>
+  <button id="exportHtml" type="button"></button>
+  <button id="exportSvg" type="button"></button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<noscript><p class="banner">需要开启 JavaScript。 This app needs JavaScript.</p></noscript>
+
+<script src="js/app.js"></script>
+<script src="js/export.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/tool-punch.js"></script>
+<script src="js/tool-flow.js"></script>
+<script src="js/tool-fog.js"></script>
+<script src="js/tool-reveal.js"></script>
+<script src="js/tool-subject.js"></script>
+<script src="js/tool-ascii.js"></script>
+<script src="js/tool-window.js"></script>
+<script src="js/merch.js"></script>
+<script src="js/tool-lenticular.js"></script>
+<script src="js/tool-sticker.js"></script>
+<script src="js/tool-acrylic.js"></script>
+<script src="js/tool-badge.js"></script>
+<script src="js/tool-stage.js"></script>
+<script src="js/tool-ccd.js"></script>
+<script src="js/mobile/zh.js"></script>
+<script src="js/mobile/shell.js"></script>
+<script src="js/stats.js"></script>
+</body>
+</html>

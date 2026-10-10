@@ -62,9 +62,10 @@
   const NOTE = { message: '生日快乐！今晚火锅我请，不许迟到 ✦', from: 'Mochi', theme: 'cream' };
 
   // The maker saves drafts; keep the person's own draft safe while we test.
-  let savedDraft = null;
-  try { savedDraft = localStorage.getItem('kk-draft'); } catch (e) { /* no storage */ }
-  const restoreDraft = () => { try { savedDraft == null ? localStorage.removeItem('kk-draft') : localStorage.setItem('kk-draft', savedDraft); } catch (e) { /* ignore */ } };
+  const KEEP = ['kk-draft', 'kk-lang', 'kirakira-tool', 'kk-own'];
+  const saved = {};
+  try { KEEP.forEach(k => { saved[k] = localStorage.getItem(k); }); } catch (e) { /* no storage */ }
+  const restoreDraft = () => { try { KEEP.forEach(k => (saved[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, saved[k]))); } catch (e) { /* ignore */ } };
 
   (async function run() {
     await check('canvas text renders CJK (system font present)', () => {
@@ -213,6 +214,74 @@
       f.remove();
       return r;
     });
+
+    // ---------------- phone app ----------------
+    let appFrame = null;
+    await check('app: opens and shows the home screen', async () => {
+      try { localStorage.setItem('kk-lang', 'zh'); } catch (e) { /* ignore */ }
+      appFrame = await frame('app.html');
+      await sleep(400);
+      const d = appFrame.contentDocument;
+      return !d.getElementById('home').hidden && d.querySelectorAll('#tiles .tile').length === 14;
+    });
+
+    await check('app: all 13 effects build, draw and react to touch — no errors, nothing untranslated', async () => {
+      const w = appFrame.contentWindow, d = appFrame.contentDocument, App = w.App;
+      const errs = [];
+      w.addEventListener('error', e => errs.push(e.message));
+      d.getElementById('tryDemo').click();
+      const c = d.getElementById('canvas');
+      const frames = n => { for (let i = 0; i < n; i++) if (App.current.frame) App.current.frame(w.performance.now() + i * 16); };
+      // "drew something": the picture isn't one flat colour (brightness varies across it)
+      const lit = () => { const t = d.createElement('canvas'); t.width = 60; t.height = 45; const x = t.getContext('2d'); x.drawImage(c, 0, 0, 60, 45); const px = x.getImageData(0, 0, 60, 45).data; let s = 0, s2 = 0; const n = px.length / 4; for (let i = 0; i < px.length; i += 4) { const l = (px[i] + px[i + 1] + px[i + 2]) / 3; s += l; s2 += l * l; } const m = s / n; return Math.sqrt(Math.max(0, s2 / n - m * m)); };
+      const blank = [];
+      for (const t of App.tools) {
+        w.__kkShell.selectTool(t.id);
+        await sleep(t.id === 'badge' ? 2500 : 120);
+        frames(6);
+        const r = c.getBoundingClientRect();
+        const P = (type, fx) => new w.PointerEvent(type, { pointerId: 3, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: r.left + fx * r.width, clientY: r.top + r.height * .5, buttons: 1 });
+        c.dispatchEvent(P('pointerdown', .3)); for (let i = 1; i <= 8; i++) { c.dispatchEvent(P('pointermove', .3 + i * .05)); frames(1); } c.dispatchEvent(P('pointerup', .7));
+        frames(4);
+        if (lit() < 3) blank.push(t.id);
+      }
+      const missing = Array.from(w.__kkShell.missing);
+      assert(!errs.length, 'errors: ' + errs.join(' | '));
+      assert(!blank.length, 'blank: ' + blank.join(', '));
+      assert(!missing.length, 'untranslated: ' + missing.slice(0, 5).join(' | '));
+      return `${App.tools.length} effects`;
+    });
+
+    await check('app: AI cutout and 3D load from this site (not a CDN)', async () => {
+      const w = appFrame.contentWindow, App = w.App;
+      await App.loadSegmenter();
+      const mask = await App.segmentAt(App.A, App.A.width * .5, App.A.height * .45);
+      const names = w.performance.getEntriesByType('resource').map(e => e.name);
+      const ext = names.filter(n => /mediapipe|tflite|three/.test(n) && !n.startsWith(location.origin));
+      assert(!ext.length, 'external: ' + ext.join(', '));
+      assert(names.some(n => n.includes('vendor/three-')), 'three.js not loaded');
+      return `mask ${mask.width}×${mask.height}`;
+    });
+
+    await check('app: pinch with two fingers becomes zoom; save opens with the picture', async () => {
+      const w = appFrame.contentWindow, d = appFrame.contentDocument, App = w.App;
+      w.__kkShell.selectTool('reveal');
+      await sleep(100);
+      const c = d.getElementById('canvas'), r = c.getBoundingClientRect();
+      let wheels = 0; const ow = App.current.wheel; App.current.wheel = (p, e) => { wheels++; return ow.call(App.current, p, e); };
+      const P = (type, id, x) => new w.PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 1, bubbles: true, cancelable: true, clientX: r.left + x, clientY: r.top + 60, buttons: 1 });
+      c.dispatchEvent(P('pointerdown', 1, 120)); c.dispatchEvent(P('pointerdown', 2, 160));
+      for (let i = 1; i <= 6; i++) { c.dispatchEvent(P('pointermove', 1, 120 - i * 6)); c.dispatchEvent(P('pointermove', 2, 160 + i * 6)); }
+      c.dispatchEvent(P('pointerup', 2, 196)); c.dispatchEvent(P('pointerup', 1, 84));
+      App.current.wheel = ow;
+      assert(wheels > 0, 'no zoom');
+      w.__kkShell.openSave();
+      await sleep(900);
+      const img = d.getElementById('saveImg');
+      assert(!d.getElementById('saveBox').hidden && img.naturalWidth > 100, 'save sheet');
+      return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
+    });
+    if (appFrame) appFrame.remove();
 
     restoreDraft();
     const pass = results.filter(Boolean).length;

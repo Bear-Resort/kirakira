@@ -3,6 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Phones get the simple app; "?desktop" (or having chosen it once) keeps the full atelier.
+  (function () {
+    try {
+      if (/[?&]desktop\b/.test(location.search)) { localStorage.setItem('kk-desktop', '1'); return; }
+      if (localStorage.getItem('kk-desktop')) return;
+    } catch (e) { /* storage blocked: fall through */ }
+    if (window.matchMedia && matchMedia('(max-width: 820px) and (pointer: coarse)').matches) location.replace('app.html');
+  })();
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>KIRA·KIRA atelier — photo play for anime &amp; art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +31,7 @@
     <span class="brand-sub">atelier</span>
     <a class="brand-link" href="darkroom/index.html" title="The first version: Flow Paint, Pixel Sort, Halftone, Weave">→ Darkroom</a>
     <a class="brand-link brand-link--new" href="make.html" data-track="atelier-to-make" title="Write a note, get a WeChat poster friends wipe open">✦ 雾里的悄悄话 · Fog note</a>
+    <a class="brand-link" href="app.html" onclick="try { localStorage.removeItem('kk-desktop'); } catch (e) {}" data-track="atelier-to-app">📱 手机版 · Phone app</a>
   </div>
   <nav class="tabs" id="tabs" aria-label="Tools"></nav>
 </header>

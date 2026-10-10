@@ -4,6 +4,14 @@ Photo play for anime & art lovers — upload a picture and turn it into ASCII ar
 
 Also try the **Darkroom**: flow paint, pixel sort, halftone and weave.
 
+## 📱 Phone app · 手机版 (`app.html`)
+
+All 13 effects in a dead-simple phone layout: pick a photo → swipe through effects → save.
+Chinese and English, one-line "how to play" for every effect, settings tucked into 调整 / 更多设置,
+two-finger pinch to resize, and saving that works in WeChat (long-press), iPhone and Android (share sheet).
+Phones opening the atelier are sent here automatically (`index.html?desktop` keeps the full version).
+Add it to the home screen to use it like an app.
+
 ## ✦ 雾里的悄悄话 · A note in the fog
 
 Write a short note → get a poster for WeChat Moments or a chat. Friends long-press the QR code (长按识别二维码) and have to wipe the fog off with a finger to read it.

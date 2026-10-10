@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   const CW = 1400, CH = 1050;
-  const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
+  const THREE_URL = 'vendor/three-0.149.0/three.min.js'; // self-hosted: CDNs are unreliable in mainland China
 
   const st = { shape: 'circle', size: 58, zoom: 100, panX: 0, panY: 0, finish: 'gloss', back: 'silver', bg: 'pastel', text: 'OC GOODS' };
 

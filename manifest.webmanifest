@@ -1,0 +1,17 @@
+{
+  "name": "KIRA·KIRA 把照片变好玩",
+  "short_name": "KIRA·KIRA",
+  "description": "13 种照片玩法：雾窗、镭射贴纸、亚克力挂件、吧唧、CCD 相机…",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf5ea",
+  "theme_color": "#fbf5ea",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
