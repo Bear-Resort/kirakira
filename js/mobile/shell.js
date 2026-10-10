@@ -224,7 +224,7 @@
     }
     const dr = document.createElement('a');
     dr.className = 'tile tile-link'; dr.href = 'darkroom/index.html';
-    dr.innerHTML = '<span class="tile-icon" aria-hidden="true">◐</span><span class="tile-name"></span>';
+    dr.innerHTML = '<span class="tile-icon" aria-hidden="true">🎞</span><span class="tile-name"></span>';
     dr.querySelector('.tile-name').textContent = lang === 'zh' ? '暗房（4 种）' : 'Darkroom (4)';
     tiles.append(dr);
   }
