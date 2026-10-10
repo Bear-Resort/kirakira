@@ -62,12 +62,12 @@ test('cleanText strips control/bidi characters and tidies whitespace', () => {
 
 // ---------- links ----------
 test('buildPlayUrl -> parsePlayParams round-trip', () => {
-  const data = { message: '生日快乐！\n今晚火锅我请 ✦', from: 'Tina', theme: 'night' };
+  const data = { message: '生日快乐！\n今晚火锅我请 ✦', from: 'Mochi', theme: 'night' };
   const url = KK.buildPlayUrl(BASE + '?old=1#junk', data);
   assert.ok(url.startsWith(BASE + '#v=1&t=night&m='), url);
   const u = new URL(url);
   const p = KK.parsePlayParams(u.hash, u.search);
-  assert.deepEqual(p, { ok: true, demo: false, theme: 'night', message: data.message, from: 'Tina' });
+  assert.deepEqual(p, { ok: true, demo: false, theme: 'night', message: data.message, from: 'Mochi' });
 });
 
 test('parsePlayParams: survives WeChat-style query params and reading from ?query', () => {
@@ -121,7 +121,7 @@ test('emoji-heavy notes hit the room limit with a friendly error', () => {
 
 test('isLocalHost', () => {
   const L = (protocol, hostname) => ({ protocol, hostname });
-  for (const h of ['localhost', '127.0.0.1', '192.168.1.4', '10.0.0.2', '172.20.1.1', 'tina.local']) assert.ok(KK.isLocalHost(L('http:', h)), h);
+  for (const h of ['localhost', '127.0.0.1', '192.168.1.4', '10.0.0.2', '172.20.1.1', 'mochi.local']) assert.ok(KK.isLocalHost(L('http:', h)), h);
   assert.ok(KK.isLocalHost(L('file:', '')));
   for (const h of ['kirakira-atelier.github.io', '172.32.0.1', 'example.com']) assert.ok(!KK.isLocalHost(L('https:', h)), h);
 });

@@ -59,7 +59,7 @@
     return win.__kkPlay.progress();
   }
 
-  const NOTE = { message: '生日快乐！今晚火锅我请，不许迟到 ✦', from: 'Tina', theme: 'cream' };
+  const NOTE = { message: '生日快乐！今晚火锅我请，不许迟到 ✦', from: 'Mochi', theme: 'cream' };
 
   // The maker saves drafts; keep the person's own draft safe while we test.
   let savedDraft = null;
