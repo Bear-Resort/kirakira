@@ -25,7 +25,9 @@
   s.async = true;
   s.src = 'https://gc.zgo.at/count.js';
   s.dataset.goatcounter = `${base}/count`;
-  document.head.append(s);
+  // after load: a slow or blocked counter must never hold up the page (WeChat's progress bar)
+  if (document.readyState === 'complete') document.head.append(s);
+  else window.addEventListener('load', () => document.head.append(s));
 
   const queued = [];
   function use(name) {

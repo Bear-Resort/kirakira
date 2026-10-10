@@ -40,13 +40,30 @@
     return { mean, sd: Math.sqrt(sq / n - mean * mean) };
   }
 
-  function frame(path) {
+  /** Open a page in a hidden frame. Resolves when `ready(win)` is true — NOT on the load event, which a
+      blocked third-party request (e.g. Google in mainland China) can hold up for a minute. */
+  function frame(path, ready, waitMs) {
     return new Promise((resolve, reject) => {
       const f = document.createElement('iframe');
       f.src = root + path;
-      f.onload = () => setTimeout(() => resolve(f), 350);
-      f.onerror = reject;
       document.body.append(f);
+      const t0 = Date.now();
+      const isReady = ready || (w => w.document.readyState !== 'loading' && (w.__kkPlay || w.__kkMake || w.__kkShell));
+      (function poll() {
+        let w = null;
+        try { w = f.contentWindow; if (w && w.document && w.location.href !== 'about:blank' && isReady(w)) return setTimeout(() => resolve(f), 250); } catch (e) { /* not yet */ }
+        if (Date.now() - t0 > (waitMs || 20000)) {
+          let why = '';
+          try {
+            const doc = w.document;
+            why = ` (page state: ${doc.readyState}; scripts loaded: ${doc.scripts.length}; errors on the page: ${(w.__kkErrs || []).join(' | ') || 'none'})`;
+          } catch (e) { /* ignore */ }
+          return reject(new Error(`${path.split('#')[0]} did not start within ${Math.round((waitMs || 20000) / 1000)} s${why}`));
+        }
+        setTimeout(poll, 150);
+      })();
+      // collect script errors inside the frame as early as possible
+      f.addEventListener('load', () => { try { f.contentWindow.__kkErrs = f.contentWindow.__kkErrs || []; } catch (e) { /* ignore */ } });
     });
   }
   function swipe(win, y, id) {
@@ -219,13 +236,17 @@
     let appFrame = null;
     await check('app: opens and shows the home screen', async () => {
       try { localStorage.setItem('kk-lang', 'zh'); } catch (e) { /* ignore */ }
-      appFrame = await frame('app.html');
-      await sleep(400);
-      const d = appFrame.contentDocument;
-      return !d.getElementById('home').hidden && d.querySelectorAll('#tiles .tile').length === 14;
+      appFrame = await frame('app.html', w => !!w.__kkShell && w.document.querySelectorAll('#tiles .tile').length > 0, 25000);
+      const w = appFrame.contentWindow, d = appFrame.contentDocument;
+      const tiles = d.querySelectorAll('#tiles .tile').length;
+      assert(!d.getElementById('home').hidden, 'home screen is hidden');
+      assert(tiles === 14, `${tiles} effect tiles instead of 14 — loaded effects: ${w.App.tools.map(t => t.id).join(', ')}`);
+      return `${tiles} tiles`;
     });
+    // the next checks need the app; say so plainly instead of failing with confusing errors
+    const needApp = fn => async () => { if (!appFrame) throw new Error('skipped — the app did not open (see the check above)'); return fn(); };
 
-    await check('app: all 13 effects build, draw and react to touch — no errors, nothing untranslated', async () => {
+    await check('app: all 13 effects build, draw and react to touch — no errors, nothing untranslated', needApp(async () => {
       const w = appFrame.contentWindow, d = appFrame.contentDocument, App = w.App;
       const errs = [];
       w.addEventListener('error', e => errs.push(e.message));
@@ -250,9 +271,9 @@
       assert(!blank.length, 'blank: ' + blank.join(', '));
       assert(!missing.length, 'untranslated: ' + missing.slice(0, 5).join(' | '));
       return `${App.tools.length} effects`;
-    });
+    }));
 
-    await check('app: AI cutout and 3D load from this site (not a CDN)', async () => {
+    await check('app: AI cutout and 3D load from this site (not a CDN)', needApp(async () => {
       const w = appFrame.contentWindow, App = w.App;
       await App.loadSegmenter();
       const mask = await App.segmentAt(App.A, App.A.width * .5, App.A.height * .45);
@@ -261,9 +282,9 @@
       assert(!ext.length, 'external: ' + ext.join(', '));
       assert(names.some(n => n.includes('vendor/three-')), 'three.js not loaded');
       return `mask ${mask.width}×${mask.height}`;
-    });
+    }));
 
-    await check('app: pinch with two fingers becomes zoom; save opens with the picture', async () => {
+    await check('app: pinch with two fingers becomes zoom; save opens with the picture', needApp(async () => {
       const w = appFrame.contentWindow, d = appFrame.contentDocument, App = w.App;
       w.__kkShell.selectTool('reveal');
       await sleep(100);
@@ -285,7 +306,7 @@
       try { await img.decode(); } catch (e) { /* checked below */ }
       assert(img.naturalWidth > 100, 'saved picture is empty');
       return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
-    });
+    }));
     if (appFrame) appFrame.remove();
 
     restoreDraft();

@@ -576,6 +576,7 @@
     if (App.current === tool) return;
     if (App.current && App.current.deactivate) App.current.deactivate();
     App.current = tool;
+    App.touched = false;
     document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.id === tool.id));
     document.getElementById('toolTitle').textContent = tool.icon + ' ' + tool.name;
     document.getElementById('toolHint').textContent = tool.hint;
@@ -602,6 +603,7 @@
     c.addEventListener('contextmenu', e => e.preventDefault());
     c.addEventListener('pointerdown', e => {
       if (!App.A) return;
+      App.touched = true;
       try { c.setPointerCapture(e.pointerId); } catch (err) { /* old WebViews / synthetic events */ }
       const p = canvasPoint(e);
       Object.assign(App.pointer, p, { down: true, inside: true });
@@ -693,7 +695,11 @@
     App.setPicture('B', Demo.make(false));
     selectTool(App.tools.find(t => t.id === saved) || App.tools[0]);
     requestAnimationFrame(loop);
-    // fonts are drawn into canvases, so redraw once they arrive
-    if (document.fonts) document.fonts.ready.then(() => notifyImage());
+    // fonts are drawn into canvases, so redraw once they arrive (they may come late, or never in mainland China)
+    if (document.fonts) {
+      document.fonts.ready.then(() => notifyImage());
+      // …but a late font must never wipe out what someone is in the middle of doing
+      if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => { if (!App.touched) notifyImage(); });
+    }
   };
 })();
