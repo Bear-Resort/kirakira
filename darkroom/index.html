@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darkroom — photo alchemy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Darkroom</h1>
+    <p class="tagline">Drop in a photo. Watch it become something else.</p>
+    <p class="tagline"><a href="../index.html" style="color:inherit">← back to KIRA·KIRA atelier</a></p>
+  </header>
+
+  <main>
+    <!-- Upload area: shown until at least one photo is loaded -->
+    <label id="dropzone" class="dropzone">
+      <input id="file-input" type="file" accept="image/*" multiple hidden>
+      <span class="drop-big">Drop photos here</span>
+      <span class="drop-small">or click to choose — add several for the Weave effect</span>
+    </label>
+
+    <section id="studio" class="studio" hidden>
+      <aside class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-mode="flow">Flow Paint</button>
+          <button class="tab" data-mode="sort">Pixel Sort</button>
+          <button class="tab" data-mode="halftone">Halftone</button>
+          <button class="tab" data-mode="weave">Weave</button>
+        </div>
+
+        <p id="mode-blurb" class="blurb"></p>
+
+        <!-- One group of controls per mode; only the active one is visible -->
+        <div class="controls" data-for="flow">
+          <label>Brush size <input type="range" id="flow-size" min="1" max="8" value="3"></label>
+          <label>Stroke length <input type="range" id="flow-length" min="5" max="60" value="25"></label>
+          <label>Paper
+            <select id="flow-paper">
+              <option value="#f3ede1">Cream</option>
+              <option value="#111014">Ink black</option>
+              <option value="#ffffff">White</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="controls" data-for="sort" hidden>
+          <label>Threshold low <input type="range" id="sort-lo" min="0" max="255" value="60"></label>
+          <label>Threshold high <input type="range" id="sort-hi" min="0" max="255" value="210"></label>
+          <label>Direction
+            <select id="sort-dir">
+              <option value="h">Horizontal</option>
+              <option value="v">Vertical</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="sort-reverse"> Reverse order</label>
+        </div>
+
+        <div class="controls" data-for="halftone" hidden>
+          <label>Dot spacing <input type="range" id="ht-cell" min="4" max="30" value="9"></label>
+          <label>Style
+            <select id="ht-style">
+              <option value="cmy">Color print (CMY)</option>
+              <option value="mono">Newspaper</option>
+              <option value="pop">Pop art</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="controls" data-for="weave" hidden>
+          <label>Strip width <input type="range" id="weave-width" min="4" max="80" value="18"></label>
+          <label>Wave <input type="range" id="weave-wave" min="0" max="120" value="30"></label>
+          <label>Direction
+            <select id="weave-dir">
+              <option value="v">Vertical strips</option>
+              <option value="h">Horizontal strips</option>
+              <option value="both">Basket (both)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="rerender" class="btn">Re-roll</button>
+          <a id="download" class="btn primary" download="darkroom.png" href="#">Save image</a>
+        </div>
+
+        <h2>Your photos</h2>
+        <div id="thumbs" class="thumbs"></div>
+        <label class="btn small add-more">
+          + Add photos
+          <input id="file-input-more" type="file" accept="image/*" multiple hidden>
+        </label>
+      </aside>
+
+      <div class="stage">
+        <canvas id="canvas"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="../js/stats.js"></script>
+</body>
+</html>

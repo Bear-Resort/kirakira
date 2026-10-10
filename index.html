@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KIRA·KIRA atelier — photo play for anime &amp; art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DotGothic16&family=Caveat:wght@600&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-star" aria-hidden="true">✦</span>
+    <span class="brand-name">KIRA·KIRA</span>
+    <span class="brand-sub">atelier</span>
+    <a class="brand-link" href="darkroom/index.html" title="The first version: Flow Paint, Pixel Sort, Halftone, Weave">→ Darkroom</a>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Tools"></nav>
+</header>
+
+<main class="layout">
+
+  <aside class="panel panel-left">
+    <section class="card">
+      <h2><span class="num">1</span> Your pictures</h2>
+      <div class="drops">
+        <label class="drop" id="dropA">
+          <input type="file" accept="image/*" id="fileA">
+          <span class="drop-thumb" id="thumbA"></span>
+          <span class="drop-text"><b>Picture A</b><small>click or drop</small></span>
+        </label>
+        <label class="drop" id="dropB">
+          <input type="file" accept="image/*" id="fileB">
+          <span class="drop-thumb" id="thumbB"></span>
+          <span class="drop-text"><b>Picture B</b><small>the "difference" twin, for Peek-a-boo</small></span>
+        </label>
+      </div>
+      <button class="btn btn-ghost" id="demoBtn">✧ use the demo pictures</button>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">2</span> Filters <small>apply to every tool</small></h2>
+      <div class="presets" id="presets"></div>
+      <div id="filterSliders"></div>
+    </section>
+  </aside>
+
+  <section class="stage-col">
+    <div class="stage-head">
+      <h1 id="toolTitle">—</h1>
+      <p id="toolHint"></p>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="canvas" width="800" height="600"></canvas>
+      <div class="busy" id="busy" hidden><span class="spinner"></span><span id="busyText">working…</span></div>
+      <div class="dropveil" id="dropveil" hidden>drop to use as Picture A ✦</div>
+    </div>
+    <div class="stage-foot">
+      <button class="btn btn-main" id="exportBtn">⤓ Save as PNG</button>
+      <button class="btn" id="exportHtml" title="Every part as its own named layer, text stays editable">⤓ HTML (layers)</button>
+      <button class="btn" id="exportSvg" title="Opens in Figma / Illustrator / Inkscape with named layers">⤓ SVG (layers)</button>
+      <span class="foot-note">Tip: you can also drag a picture onto the canvas, or paste one.</span>
+    </div>
+  </section>
+
+  <aside class="panel panel-right">
+    <section class="card">
+      <h2><span class="num">3</span> Tool settings</h2>
+      <div id="toolControls" class="controls"></div>
+    </section>
+  </aside>
+
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/export.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/tool-punch.js"></script>
+<script src="js/tool-flow.js"></script>
+<script src="js/tool-fog.js"></script>
+<script src="js/tool-reveal.js"></script>
+<script src="js/tool-subject.js"></script>
+<script src="js/tool-ascii.js"></script>
+<script src="js/tool-window.js"></script>
+<script src="js/merch.js"></script>
+<script src="js/tool-lenticular.js"></script>
+<script src="js/tool-sticker.js"></script>
+<script src="js/tool-acrylic.js"></script>
+<script src="js/tool-badge.js"></script>
+<script src="js/tool-stage.js"></script>
+<script src="js/tool-ccd.js"></script>
+<script>App.start();</script>
+<script src="js/stats.js"></script>
+</body>
+</html>
