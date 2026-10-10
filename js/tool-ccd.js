@@ -99,29 +99,61 @@
   }
 
   /* ---------- tablecloth ---------- */
+  // Real tartans are woven from a "sett": a list of thread colours and counts, mirrored, used for both
+  // warp and weft. Where the two cross, the colours mix — that is what makes the checks look woven.
+  const SETTS = {
+    // Royal Stewart-style: big red squares, green / navy bands, fine white and yellow lines
+    red: [['#e3171f', 96], ['#7a1018', 3], ['#e3171f', 8], ['#13151c', 3], ['#f4f1e6', 2], ['#13151c', 3],
+      ['#e3171f', 8], ['#22357a', 3], ['#0e6a3b', 28], ['#13151c', 3], ['#f2c12e', 2], ['#13151c', 3], ['#0e6a3b', 10]],
+    // Black Watch-style: deep green and navy with black, a thin red line
+    green: [['#1f4d33', 40], ['#0e1424', 6], ['#1f4d33', 6], ['#0e1424', 6], ['#1f4d33', 6], ['#1b2550', 26],
+      ['#0e1424', 8], ['#b8222b', 3], ['#0e1424', 8], ['#1b2550', 26], ['#0e1424', 6], ['#d9c46a', 2], ['#0e1424', 6]],
+  };
+
+  function settTile(sett, unit) {
+    const stripes = sett.concat(sett.slice().reverse()); // a sett is mirrored around its pivots
+    const L = stripes.reduce((a, s) => a + s[1], 0) * unit;
+    const c = App.makeCanvas(L, L), x = c.getContext('2d');
+    let p = 0;
+    for (const [col, n] of stripes) { x.fillStyle = col; x.fillRect(p, 0, n * unit, L); p += n * unit; } // warp
+    p = 0;
+    x.globalAlpha = .5;                                                                                      // weft
+    for (const [col, n] of stripes) { x.fillStyle = col; x.fillRect(0, p, L, n * unit); p += n * unit; }
+    x.globalAlpha = 1;
+    // 2/2 twill: thread-sized diagonal ribs
+    for (let i = -L; i < L; i += unit * 2) {
+      x.strokeStyle = 'rgba(0,0,0,.16)'; x.lineWidth = unit * .55;
+      x.beginPath(); x.moveTo(i, 0); x.lineTo(i + L, L); x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,.07)'; x.lineWidth = unit * .3;
+      x.beginPath(); x.moveTo(i + unit, 0); x.lineTo(i + unit + L, L); x.stroke();
+    }
+    return c;
+  }
+
   function cloth() {
     if (clothC && clothKey === st.cloth) return clothC;
     clothKey = st.cloth;
     const c = App.makeCanvas(CW, CH), x = c.getContext('2d');
-    const P = {
-      green: ['#244a33', [['#0f2a1d', 60, .55], ['#3b6b45', 24, .5], ['#c9b45a', 4, .6], ['#7a1f24', 6, .45]]],
-      red: ['#8c1f24', [['#3b0d10', 70, .5], ['#1d2a4a', 26, .5], ['#e8d27a', 4, .55], ['#ffffff', 3, .35]]],
-      gingham: ['#f4efe6', [['#c94b5a', 46, .4]]],
-    }[st.cloth];
-    x.fillStyle = P[0]; x.fillRect(0, 0, CW, CH);
-    const period = st.cloth === 'gingham' ? 92 : 190;
-    for (const [col, width, a] of P[1]) {
-      x.globalAlpha = a; x.fillStyle = col;
-      const off = width * 3.1;
-      for (let i = -period; i < CW + period; i += period) x.fillRect(i + off, 0, width, CH);
-      for (let i = -period; i < CH + period; i += period) x.fillRect(0, i + off, CW, width);
+    if (st.cloth === 'gingham') {
+      x.fillStyle = '#f4efe6'; x.fillRect(0, 0, CW, CH);
+      x.globalAlpha = .4; x.fillStyle = '#c94b5a';
+      for (let i = -92; i < CW + 92; i += 92) x.fillRect(i + 143, 0, 46, CH);
+      for (let i = -92; i < CH + 92; i += 92) x.fillRect(0, i + 143, CW, 46);
+      x.globalAlpha = 1;
+    } else {
+      // laid diagonally on the table, like a picnic cloth
+      x.save();
+      x.translate(CW / 2, CH / 2); x.rotate(Math.PI / 4);
+      x.fillStyle = x.createPattern(settTile(SETTS[st.cloth] || SETTS.red, 1.15), 'repeat');
+      x.fillRect(-CW, -CW, CW * 2, CW * 2);
+      x.restore();
     }
-    x.globalAlpha = 1;
-    // twill weave texture
-    x.strokeStyle = 'rgba(0,0,0,.08)'; x.lineWidth = 1.5;
-    for (let i = -CH; i < CW; i += 5) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + CH, CH); x.stroke(); }
+    // fabric fuzz and a soft vignette, like a photo taken under a lamp
     const r = App.rng(2);
-    for (let i = 0; i < 4000; i++) { x.fillStyle = r() < .5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)'; x.fillRect(r() * CW, r() * CH, 2, 1); }
+    for (let i = 0; i < 6000; i++) { x.fillStyle = r() < .5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)'; x.fillRect(r() * CW, r() * CH, 2, 1); }
+    const v = x.createRadialGradient(CW / 2, CH / 2, CH * .35, CW / 2, CH / 2, CW * .72);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.42)');
+    x.fillStyle = v; x.fillRect(0, 0, CW, CH);
     return (clothC = c);
   }
 
