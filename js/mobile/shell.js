@@ -82,6 +82,12 @@
   U.text = (p, label, value, fn) => orig.text(p, tr(label), value, fn);
   U.buttons = (p, list) => orig.buttons(p, list.map(([t, fn]) => [tr(t), fn]));
   U.note = (p, html) => orig.note(p, tr(html));
+  U.pictures = (p, label, list, value, fn) => {
+    const api = orig.pictures(p, label && tr(label), list.map(([v, t, src]) => [v, tr(t), src]), value, fn);
+    const setItems = api.setItems;
+    api.setItems = (l, v) => setItems(l.map(([vv, t, src]) => [vv, tr(t), src]), v);
+    return api;
+  };
   U.heading = (p, text) => orig.heading(p, tr(text));
   const origToast = App.toast, origBusy = App.busy;
   App.toast = (msg, ms) => origToast(tr(msg), ms);

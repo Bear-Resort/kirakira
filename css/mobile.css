@@ -198,3 +198,12 @@ body.in-editor .toast { bottom: calc(168px + env(safe-area-inset-bottom)); } /* 
 }
 
 .toast { pointer-events: none; } /* never block a tap underneath */
+
+/* picture picker (App.ui.pictures) */
+.pics { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; }
+.pic { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.pic-img { width: 84px; height: 64px; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 12px; background: #fff; overflow: hidden; font-size: 1.4rem; }
+.pic-img img { max-width: 92%; max-height: 92%; object-fit: contain; }
+.pic-name { font-size: .72rem; font-weight: 700; line-height: 1.2; text-align: center; }
+.pic.on .pic-img { box-shadow: 0 0 0 3px var(--pink); background: #fff3f7; }
+.pic:focus-visible .pic-img { outline: 3px solid var(--lav); outline-offset: 2px; }

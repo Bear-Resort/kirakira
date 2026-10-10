@@ -7,7 +7,7 @@
 
   const st = {
     mode: 'torch', size: 34, dark: 10, tint: 'cold', flicker: true, trail: true, dust: true,
-    shape: 'sparkle', soft: 18, spin: true, outline: true, sparkles: true, swap: false,
+    shape: 'sparkle', soft: 18, spin: true, outline: true, sparkles: true, swap: true, // 2nd picture in front, the flashlight finds the 1st
   };
   const TINTS = { cold: [215, 228, 255], warm: [255, 214, 160], green: [200, 255, 180], red: [255, 120, 105] };
 

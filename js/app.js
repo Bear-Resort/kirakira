@@ -243,6 +243,41 @@
       parent.append(row);
       return row;
     },
+    /** A row of picture buttons. items: [[value, label, imageUrl|null], …]. Returns { set(v), setItems(items, v) }. */
+    pictures(parent, label, items, value, onChange) {
+      const wrap = el('div', 'ctrl');
+      if (label) wrap.append(el('div', 'ctrl-label', `<span>${label}</span>`));
+      const row = el('div', 'pics');
+      row.setAttribute('role', 'radiogroup');
+      if (label) row.setAttribute('aria-label', label);
+      wrap.append(row);
+      parent.append(wrap);
+      let current = value, btns = [];
+      const api = {
+        set(v) {
+          current = v;
+          btns.forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+        },
+        setItems(list, v) {
+          row.textContent = ''; btns = [];
+          for (const [val, text, src] of list) {
+            const b = el('button', 'pic');
+            b.type = 'button'; b.dataset.v = val; b.title = text;
+            b.setAttribute('role', 'radio');
+            const box = el('span', 'pic-img');
+            if (src) { const im = el('img'); im.src = src; im.alt = ''; im.loading = 'lazy'; box.append(im); }
+            else box.textContent = '✦';
+            b.append(box, el('span', 'pic-name', null));
+            b.lastChild.textContent = text;
+            b.addEventListener('click', () => { api.set(val); onChange(val); });
+            btns.push(b); row.append(b);
+          }
+          api.set(v != null ? v : current);
+        },
+      };
+      api.setItems(items, value);
+      return api;
+    },
     note(parent, html) { const n = el('p', 'note', html); parent.append(n); return n; },
     heading(parent, text) { parent.append(el('div', 'ctrl-heading', text)); },
   };

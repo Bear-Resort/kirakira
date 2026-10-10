@@ -68,3 +68,22 @@ test('no CDN or Google model URLs left in the engine', () => {
     assert.ok(fs.existsSync(path.join(root, p)), `missing ${p}`);
   }
 });
+
+test('camera templates: every PNG exists and its screen corners make a sensible quad inside it', async () => {
+  const { decodePng } = await import('../scripts/lib/png.mjs');
+  const cams = JSON.parse(read('assets/cameras/cameras.json'));
+  assert.ok(cams.length >= 11, `${cams.length} cameras`);
+  const ccd = read('js/tool-ccd.js');
+  for (const c of cams) {
+    const png = decodePng(fs.readFileSync(path.join(root, 'assets/cameras', c.file)));
+    assert.equal(png.w, c.w); assert.equal(png.h, c.h);
+    const [tl, tr, br, bl] = c.screen;
+    for (const [x, y] of c.screen) assert.ok(x >= 0 && y >= 0 && x < c.w && y < c.h, `${c.id} corner outside`);
+    assert.ok(tr[0] > tl[0] && br[0] > bl[0] && bl[1] > tl[1] && br[1] > tr[1], `${c.id} corners out of order`);
+    // the screen itself must be see-through, the body around it solid
+    const a = (x, y) => png.data[(y * png.w + x) * 4 + 3];
+    const cx = Math.round((tl[0] + tr[0] + br[0] + bl[0]) / 4), cy = Math.round((tl[1] + tr[1] + br[1] + bl[1]) / 4);
+    assert.equal(a(cx, cy), 0, `${c.id} screen centre is not transparent`);
+    assert.ok(new RegExp(`${c.id}: '`).test(ccd), `${c.id} has no name in tool-ccd.js`);
+  }
+});

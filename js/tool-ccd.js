@@ -7,7 +7,7 @@
   'use strict';
   const CW = 1400, CH = 1050;
 
-  const st = { view: 'camera', body: 'silver', cloth: 'green', flash: false, night: false, osd: true, wb: 'cool', res: 640 };
+  const st = { view: 'camera', cam: 'cam08', body: 'silver', cloth: 'red', flash: false, night: false, osd: true, wb: 'cool', res: 640 };
 
   let shot = null, shotKey = '', frameNo = 42, flashT = 0, seed = 1, clothC = null, clothKey = '';
   const glare = { x: .3, y: .2 };
@@ -157,6 +157,58 @@
     return (clothC = c);
   }
 
+  /* ---------- camera templates (assets/cameras, cut out by scripts/cut-cameras.mjs) ---------- */
+  const CAM_NAMES = {
+    cam01: 'Cherry blossom Nikon', cam02: 'Pink sticker cam', cam03: 'Flip phone', cam04: 'Black cam with stickers',
+    cam05: 'White mirrorless', cam06: 'Silver Canon', cam07: 'Rose gold', cam08: 'Pink flip screen',
+    cam09: 'Silver compact', cam10: 'Tilted sticker cam', cam11: 'Pink mini',
+  };
+  const CAMS = { list: [], img: {}, loading: null };
+  function loadCams() {
+    if (!CAMS.loading) {
+      CAMS.loading = fetch('assets/cameras/cameras.json')
+        .then(r => (r.ok ? r.json() : []))
+        .then(list => {
+          CAMS.list = list;
+          for (const c of list) { const im = new Image(); im.src = 'assets/cameras/' + c.file; CAMS.img[c.id] = im; }
+          return list;
+        })
+        .catch(() => []);
+    }
+    return CAMS.loading;
+  }
+  const camReady = id => { const im = CAMS.img[id]; return !!(im && im.complete && im.naturalWidth); };
+  const camItems = () => [['drawn', 'KiraShot (drawn)', null]].concat(CAMS.list.map(c => [c.id, CAM_NAMES[c.id] || c.id, 'assets/cameras/' + c.file]));
+
+  /** A template camera on the cloth, with the shot mapped onto its screen's four corners. */
+  function drawTemplate(x, img, cam, im) {
+    const k = Math.min(CW * .8 / cam.w, CH * .8 / cam.h);
+    const w = cam.w * k, h = cam.h * k, ox = (CW - w) / 2, oy = (CH - h) / 2;
+    x.save();
+    x.translate(CW / 2, CH / 2); x.rotate(-.04); x.translate(-CW / 2, -CH / 2);
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    // 1. the camera and its shadow on the cloth
+    x.save();
+    x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 40; x.shadowOffsetX = 14; x.shadowOffsetY = 24;
+    x.drawImage(im, ox, oy, w, h);
+    x.restore();
+    // 2. the LCD, clipped to the screen (grown a touch so it slides under the bezel)
+    const P = cam.screen.map(([px, py]) => [ox + (px + .5) * k, oy + (py + .5) * k]);
+    const [tl, tr, , bl] = P;
+    const W = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]), H = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
+    const cx = P.reduce((a, p) => a + p[0], 0) / 4, cy = P.reduce((a, p) => a + p[1], 0) / 4, grow = 1 + 8 / Math.min(W, H);
+    x.save();
+    x.beginPath();
+    P.forEach(([px, py], i) => { const gx = cx + (px - cx) * grow, gy = cy + (py - cy) * grow; if (i) x.lineTo(gx, gy); else x.moveTo(gx, gy); });
+    x.closePath(); x.clip();
+    x.transform((tr[0] - tl[0]) / W, (tr[1] - tl[1]) / W, (bl[0] - tl[0]) / H, (bl[1] - tl[1]) / H, tl[0], tl[1]);
+    drawScreen(x, { x: -6, y: -6, w: W + 12, h: H + 12 }, img);
+    x.restore();
+    // 3. the camera again on top, so its bezel overlaps the picture's edge
+    x.drawImage(im, ox, oy, w, h);
+    x.restore();
+  }
+
   /* ---------- the camera ---------- */
   const BODIES = {
     silver: ['#f2f3f5', '#c4c8cf', '#8e949d'], pink: ['#ffe3ec', '#f2b3c6', '#c47d95'],
@@ -192,8 +244,9 @@
     x.beginPath(); App.roundRect(x, s.x, s.y, s.w, s.h, 6); x.clip();
     x.fillStyle = '#000'; x.fillRect(s.x, s.y, s.w, s.h);
     x.imageSmoothingEnabled = true;
-    // a cheap LCD: slightly washed out and blue
-    x.drawImage(img, s.x, s.y, s.w, s.h);
+    // a cheap LCD: slightly washed out and blue. Cover-fit, so tall or wide screens never stretch the photo.
+    const ks = Math.max(s.w / img.width, s.h / img.height), sw = s.w / ks, sh = s.h / ks;
+    x.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, s.x, s.y, s.w, s.h);
     x.globalCompositeOperation = 'screen'; x.fillStyle = 'rgba(20,30,60,.22)'; x.fillRect(s.x, s.y, s.w, s.h);
     x.globalCompositeOperation = 'source-over';
     if (st.osd) drawOSD(x, s);
@@ -303,19 +356,29 @@
 
     build(box) {
       const U = App.ui;
-      U.seg(box, 'Show', [['camera', '📷 On the camera'], ['photo', '🖼 Just the photo']], st.view, v => { st.view = v; });
-      U.seg(box, 'Camera colour', [['silver', 'Silver'], ['pink', 'Pink'], ['mint', 'Mint'], ['black', 'Black']], st.body, v => { st.body = v; });
-      U.seg(box, 'Tablecloth', [['green', 'Green tartan'], ['red', 'Red tartan'], ['gingham', 'Gingham']], st.cloth, v => { st.cloth = v; });
+      const nextCam = () => {
+        const ids = camItems().map(i => i[0]);
+        st.cam = ids[(ids.indexOf(st.cam) + 1) % ids.length]; st.view = 'camera';
+        if (picker) picker.set(st.cam);
+        if (showSeg) showSeg.set('camera');
+      };
+      U.buttons(box, [['📷 Next camera', nextCam], ['📸 Take another shot', () => { seed++; frameNo++; flashT = 1; }]]);
+      const picker = U.pictures ? U.pictures(box, 'Camera', camItems(), st.cam, v => { st.cam = v; st.view = 'camera'; if (showSeg) showSeg.set('camera'); }) : null;
+      if (picker && !CAMS.list.length) loadCams().then(() => picker.setItems(camItems(), st.cam));
+      U.seg(box, 'Tablecloth', [['red', 'Red tartan'], ['green', 'Green tartan'], ['gingham', 'Gingham']], st.cloth, v => { st.cloth = v; });
+      const showSeg = U.seg(box, 'Show', [['camera', '📷 On the camera'], ['photo', '🖼 Just the photo']], st.view, v => { st.view = v; });
+      U.seg(box, 'Camera colour', [['silver', 'Silver'], ['pink', 'Pink'], ['mint', 'Mint'], ['black', 'Black']], st.body, v => {
+        st.body = v; st.cam = 'drawn'; if (picker) picker.set('drawn'); // colours belong to the drawn KiraShot
+      });
       U.heading(box, 'The shot');
       U.toggle(box, 'Built-in flash', st.flash, v => { st.flash = v; });
       U.toggle(box, 'Night (noisy)', st.night, v => { st.night = v; });
       U.seg(box, 'White balance', [['cool', 'Auto (cool)'], ['warm', 'Indoor'], ['green', 'Fluorescent'], ['none', 'Neutral']], st.wb, v => { st.wb = v; });
       U.seg(box, 'Resolution', [['320', '320×240'], ['640', '640×480'], ['1024', '1024×768']], String(st.res), v => { st.res = +v; });
       U.toggle(box, 'Screen icons (frame no., battery, date)', st.osd, v => { st.osd = v; });
-      U.buttons(box, [['📸 Take another shot', () => { seed++; frameNo++; flashT = 1; }]]);
     },
 
-    onImage() { App.resize(CW, CH); shot = null; },
+    onImage() { App.resize(CW, CH); shot = null; loadCams(); },
 
     down() { seed++; frameNo++; flashT = 1; },
     move(p) { glare.x = .1 + p.x / CW * .8; glare.y = .1 + p.y / CH * .8; },
@@ -341,7 +404,9 @@
         }
       } else {
         x.drawImage(cloth(), 0, 0);
-        drawCamera(x, img);
+        const cam = st.cam !== 'drawn' && CAMS.list.find(c => c.id === st.cam);
+        if (cam && camReady(cam.id)) drawTemplate(x, img, cam, CAMS.img[cam.id]);
+        else drawCamera(x, img); // the drawn KiraShot (also while a template is still loading)
       }
       if (flashT > 0) {
         x.fillStyle = `rgba(255,255,255,${flashT})`; x.fillRect(0, 0, CW, CH);
