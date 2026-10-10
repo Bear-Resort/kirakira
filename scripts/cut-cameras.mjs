@@ -8,6 +8,59 @@ import { decodePng, encodePng } from './lib/png.mjs';
 
 const OUT = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'assets', 'cameras');
 const PAD = 6;
+const UP = 2;          // the sheets are small, so templates are stored 2× larger (Lanczos + light sharpening)
+const THUMB_H = 72;    // picker thumbnails
+
+// ---------- resampling (premultiplied alpha, so edges never pick up the old white background) ----------
+const lanczos = (x, a = 3) => (x === 0 ? 1 : Math.abs(x) >= a ? 0 : (a * Math.sin(Math.PI * x) * Math.sin(Math.PI * x / a)) / (Math.PI * Math.PI * x * x));
+function resize(src, w, h, nw, nh) {
+  const pre = new Float32Array(w * h * 4);
+  for (let i = 0; i < w * h; i++) { const a = src[i * 4 + 3] / 255; pre[i * 4] = src[i * 4] * a; pre[i * 4 + 1] = src[i * 4 + 1] * a; pre[i * 4 + 2] = src[i * 4 + 2] * a; pre[i * 4 + 3] = src[i * 4 + 3]; }
+  const pass = (data, sw, sh, dw, horizontal) => {
+    const dh = horizontal ? sh : dw.h, outW = horizontal ? dw : sw, outH = horizontal ? sh : dw.h;
+    const n = horizontal ? sw : sh, nn = horizontal ? dw : dw.h, scale = n / nn, sup = Math.max(1, scale) * 3;
+    const out = new Float32Array(outW * outH * 4);
+    for (let o = 0; o < nn; o++) {
+      const c = (o + .5) * scale - .5, lo = Math.floor(c - sup) + 1, hi = Math.floor(c + sup);
+      const wts = []; let sum = 0;
+      for (let k = lo; k <= hi; k++) { const wv = lanczos((k - c) / Math.max(1, scale)); wts.push(wv); sum += wv; }
+      for (let line = 0; line < (horizontal ? sh : sw); line++) {
+        let r = 0, g = 0, b = 0, a = 0;
+        for (let k = lo, j = 0; k <= hi; k++, j++) {
+          const kk = Math.min(n - 1, Math.max(0, k)), idx = horizontal ? (line * sw + kk) * 4 : (kk * sw + line) * 4, wv = wts[j] / sum;
+          r += data[idx] * wv; g += data[idx + 1] * wv; b += data[idx + 2] * wv; a += data[idx + 3] * wv;
+        }
+        const oi = horizontal ? (line * outW + o) * 4 : (o * outW + line) * 4;
+        out[oi] = r; out[oi + 1] = g; out[oi + 2] = b; out[oi + 3] = a;
+      }
+    }
+    void dh;
+    return out;
+  };
+  const hpass = pass(pre, w, h, nw, true);
+  const vpass = pass(hpass, nw, h, { h: nh }, false);
+  const out = new Uint8Array(nw * nh * 4);
+  for (let i = 0; i < nw * nh; i++) {
+    const a = Math.min(255, Math.max(0, vpass[i * 4 + 3]));
+    out[i * 4 + 3] = Math.round(a);
+    for (let c = 0; c < 3; c++) out[i * 4 + c] = a > 0.5 ? Math.min(255, Math.max(0, Math.round(vpass[i * 4 + c] / (a / 255)))) : 0;
+  }
+  return out;
+}
+/** Unsharp mask on colour (alpha untouched): out = in + amount × (in − blur3×3). */
+function sharpen(px, w, h, amount) {
+  const out = px.slice();
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = (y * w + x) * 4;
+    if (px[i + 3] < 250) continue; // leave soft edges alone (no dark rims)
+    for (let c = 0; c < 3; c++) {
+      let b = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) b += px[((y + dy) * w + x + dx) * 4 + c] * (dx && dy ? 1 : dx || dy ? 2 : 4);
+      out[i + c] = Math.min(255, Math.max(0, Math.round(px[i + c] + amount * (px[i + c] - b / 16))));
+    }
+  }
+  return out;
+}
 
 const whiteish = (d, i, min, spread) => {
   const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mn = Math.min(r, g, b), mx = Math.max(r, g, b);
@@ -118,9 +171,21 @@ for (const file of process.argv.slice(2)) {
     }
     const id = String(cams.length + 1).padStart(2, '0');
     fs.mkdirSync(OUT, { recursive: true });
-    fs.writeFileSync(path.join(OUT, `cam-${id}.png`), encodePng(cw, ch, crop));
-    cams.push({ id: `cam${id}`, file: `cam-${id}.png`, w: cw, h: ch, screen: [tl, tr, br, bl], screenPx: scr.px.length });
-    console.log(`  cam-${id}.png  ${cw}×${ch}  screen ${JSON.stringify([tl, tr, br, bl])}  (${scr.px.length}px, ${holes.length} holes)`);
+    // the exact screen shape (hole + its rim), used to clip the photo so it can never miss or overflow
+    const mask = new Uint8Array(cw * ch * 4);
+    for (let i = 0; i < cw * ch; i++) if (grown[i]) { mask[i * 4] = mask[i * 4 + 1] = mask[i * 4 + 2] = 255; mask[i * 4 + 3] = 255; }
+    const W2 = cw * UP, H2 = ch * UP;
+    const body2 = sharpen(resize(crop, cw, ch, W2, H2), W2, H2, 0.55);
+    const mask2 = resize(mask, cw, ch, W2, H2);
+    for (let i = 0; i < W2 * H2; i++) { mask2[i * 4] = mask2[i * 4 + 1] = mask2[i * 4 + 2] = 255; }
+    const tw = Math.round(cw * THUMB_H / ch);
+    const thumb = resize(crop, cw, ch, tw, THUMB_H);
+    fs.writeFileSync(path.join(OUT, `cam-${id}.png`), encodePng(W2, H2, body2));
+    fs.writeFileSync(path.join(OUT, `cam-${id}-screen.png`), encodePng(W2, H2, mask2));
+    fs.writeFileSync(path.join(OUT, `cam-${id}-thumb.png`), encodePng(tw, THUMB_H, thumb));
+    const up = ([x, y]) => [Math.round((x + .5) * UP - .5), Math.round((y + .5) * UP - .5)];
+    cams.push({ id: `cam${id}`, file: `cam-${id}.png`, mask: `cam-${id}-screen.png`, thumb: `cam-${id}-thumb.png`, w: W2, h: H2, screen: [tl, tr, br, bl].map(up) });
+    console.log(`  cam-${id}  ${W2}×${H2}  screen ${JSON.stringify([tl, tr, br, bl].map(up))}  (${scr.px.length}px)`);
   }
 }
 fs.writeFileSync(path.join(OUT, 'cameras.json'), JSON.stringify(cams, null, 1) + '\n');

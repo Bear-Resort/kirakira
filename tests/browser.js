@@ -302,10 +302,10 @@
       const t0 = Date.now();
       while (Date.now() - t0 < 12000 && (d.getElementById('saveBox').hidden || !img.src.startsWith('data:image/png'))) await sleep(100);
       assert(!d.getElementById('saveBox').hidden, 'save sheet did not open');
-      // off-screen frames may postpone decoding, so ask for it explicitly
-      try { await img.decode(); } catch (e) { /* checked below */ }
-      assert(img.naturalWidth > 100, 'saved picture is empty');
-      return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
+      // Decode the saved data itself: hidden, off-screen frames may never decode their <img> at all.
+      const bmp = await createImageBitmap(await (await fetch(img.src)).blob());
+      assert(bmp.width > 100, 'saved picture is empty');
+      return `${wheels} zoom steps, saved ${bmp.width}px`;
     }));
     if (appFrame) appFrame.remove();
 

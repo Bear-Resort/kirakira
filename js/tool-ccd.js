@@ -163,49 +163,63 @@
     cam05: 'White mirrorless', cam06: 'Silver Canon', cam07: 'Rose gold', cam08: 'Pink flip screen',
     cam09: 'Silver compact', cam10: 'Tilted sticker cam', cam11: 'Pink mini',
   };
-  const CAMS = { list: [], img: {}, loading: null };
+  const CAMS = { list: [], img: {}, mask: {}, loading: null };
+  const DIR = 'assets/cameras/';
   function loadCams() {
     if (!CAMS.loading) {
-      CAMS.loading = fetch('assets/cameras/cameras.json')
+      CAMS.loading = fetch(DIR + 'cameras.json')
         .then(r => (r.ok ? r.json() : []))
-        .then(list => {
-          CAMS.list = list;
-          for (const c of list) { const im = new Image(); im.src = 'assets/cameras/' + c.file; CAMS.img[c.id] = im; }
-          return list;
-        })
+        .then(list => { CAMS.list = list; ensureCam(st.cam); return list; })
         .catch(() => []);
     }
     return CAMS.loading;
   }
-  const camReady = id => { const im = CAMS.img[id]; return !!(im && im.complete && im.naturalWidth); };
-  const camItems = () => [['drawn', 'KiraShot (drawn)', null]].concat(CAMS.list.map(c => [c.id, CAM_NAMES[c.id] || c.id, 'assets/cameras/' + c.file]));
+  /** Big template + its screen mask load only when that camera is picked (thumbnails are tiny). */
+  function ensureCam(id) {
+    const cam = CAMS.list.find(c => c.id === id);
+    if (!cam || CAMS.img[id]) return;
+    const im = new Image(), mk = new Image();
+    im.src = DIR + cam.file; mk.src = DIR + cam.mask;
+    CAMS.img[id] = im; CAMS.mask[id] = mk;
+  }
+  const ok = im => !!(im && im.complete && im.naturalWidth);
+  const camReady = id => ok(CAMS.img[id]) && ok(CAMS.mask[id]);
+  const camItems = () => [['drawn', 'KiraShot (drawn)', null]].concat(CAMS.list.map(c => [c.id, CAM_NAMES[c.id] || c.id, DIR + c.thumb]));
 
-  /** A template camera on the cloth, with the shot mapped onto its screen's four corners. */
-  function drawTemplate(x, img, cam, im) {
+  let lcd = null; // reused offscreen canvas for the screen
+  /** A template camera on the cloth. The photo is mapped onto the screen's corners (so tilted screens
+      tilt it too) and then clipped by the screen's exact cut-out shape, so it never misses or overflows. */
+  function drawTemplate(x, img, cam) {
+    const im = CAMS.img[cam.id], mask = CAMS.mask[cam.id];
     const k = Math.min(CW * .8 / cam.w, CH * .8 / cam.h);
-    const w = cam.w * k, h = cam.h * k, ox = (CW - w) / 2, oy = (CH - h) / 2;
+    const w = Math.round(cam.w * k), h = Math.round(cam.h * k), ox = Math.round((CW - w) / 2), oy = Math.round((CH - h) / 2);
+    if (!lcd || lcd.width !== w || lcd.height !== h) lcd = App.makeCanvas(w, h);
+    const L = lcd.getContext('2d');
+    L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-over'; L.clearRect(0, 0, w, h);
+    L.imageSmoothingEnabled = true; L.imageSmoothingQuality = 'high';
+    const P = cam.screen.map(([px, py]) => [(px + .5) * k, (py + .5) * k]);
+    const [tl, tr, , bl] = P;
+    const W = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]), H = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
+    L.save();
+    L.transform((tr[0] - tl[0]) / W, (tr[1] - tl[1]) / W, (bl[0] - tl[0]) / H, (bl[1] - tl[1]) / H, tl[0], tl[1]);
+    const o = Math.max(W, H) * .05; // generous overscan: the mask decides the real edge
+    // icons sit a little inside the corners, clear of rounded screen corners and the bezel's shadow
+    const m = Math.min(W, H) * .035;
+    drawScreen(L, { x: -o, y: -o, w: W + 2 * o, h: H + 2 * o }, img, { x: m, y: m, w: W - 2 * m, h: H - 2 * m });
+    L.restore();
+    L.globalCompositeOperation = 'destination-in';
+    L.drawImage(mask, 0, 0, w, h);
+    L.globalCompositeOperation = 'source-over';
+
     x.save();
     x.translate(CW / 2, CH / 2); x.rotate(-.04); x.translate(-CW / 2, -CH / 2);
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-    // 1. the camera and its shadow on the cloth
     x.save();
     x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 40; x.shadowOffsetX = 14; x.shadowOffsetY = 24;
-    x.drawImage(im, ox, oy, w, h);
+    x.drawImage(im, ox, oy, w, h); // camera + its shadow on the cloth
     x.restore();
-    // 2. the LCD, clipped to the screen (grown a touch so it slides under the bezel)
-    const P = cam.screen.map(([px, py]) => [ox + (px + .5) * k, oy + (py + .5) * k]);
-    const [tl, tr, , bl] = P;
-    const W = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]), H = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
-    const cx = P.reduce((a, p) => a + p[0], 0) / 4, cy = P.reduce((a, p) => a + p[1], 0) / 4, grow = 1 + 8 / Math.min(W, H);
-    x.save();
-    x.beginPath();
-    P.forEach(([px, py], i) => { const gx = cx + (px - cx) * grow, gy = cy + (py - cy) * grow; if (i) x.lineTo(gx, gy); else x.moveTo(gx, gy); });
-    x.closePath(); x.clip();
-    x.transform((tr[0] - tl[0]) / W, (tr[1] - tl[1]) / W, (bl[0] - tl[0]) / H, (bl[1] - tl[1]) / H, tl[0], tl[1]);
-    drawScreen(x, { x: -6, y: -6, w: W + 12, h: H + 12 }, img);
-    x.restore();
-    // 3. the camera again on top, so its bezel overlaps the picture's edge
-    x.drawImage(im, ox, oy, w, h);
+    x.drawImage(lcd, ox, oy);       // the screen, exactly in its hole
+    x.drawImage(im, ox, oy, w, h);  // bezel on top for crisp edges
     x.restore();
   }
 
@@ -239,7 +253,9 @@
     x.restore();
   }
 
-  function drawScreen(x, s, img) {
+  /** s = the area to paint; inner = where the visible screen really is (icons and glare go there). */
+  function drawScreen(x, s, img, inner) {
+    const vis = inner || s;
     x.save();
     x.beginPath(); App.roundRect(x, s.x, s.y, s.w, s.h, 6); x.clip();
     x.fillStyle = '#000'; x.fillRect(s.x, s.y, s.w, s.h);
@@ -249,13 +265,13 @@
     x.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, s.x, s.y, s.w, s.h);
     x.globalCompositeOperation = 'screen'; x.fillStyle = 'rgba(20,30,60,.22)'; x.fillRect(s.x, s.y, s.w, s.h);
     x.globalCompositeOperation = 'source-over';
-    if (st.osd) drawOSD(x, s);
+    if (st.osd) drawOSD(x, vis);
     // pixel grid
     x.fillStyle = 'rgba(0,0,0,.18)';
     for (let i = s.x; i < s.x + s.w; i += 3) x.fillRect(i, s.y, 1, s.h);
     for (let j = s.y; j < s.y + s.h; j += 3) x.fillRect(s.x, j, s.w, 1);
     // glare on the plastic screen cover, following the mouse
-    const gx = s.x + s.w * glare.x, gy = s.y + s.h * glare.y;
+    const gx = vis.x + vis.w * glare.x, gy = vis.y + vis.h * glare.y;
     const g = x.createLinearGradient(gx - s.w * .5, gy - s.h * .5, gx + s.w * .5, gy + s.h * .5);
     g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.46, 'rgba(255,255,255,0)');
     g.addColorStop(.5, 'rgba(255,255,255,.22)'); g.addColorStop(.58, 'rgba(255,255,255,.05)'); g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -405,7 +421,8 @@
       } else {
         x.drawImage(cloth(), 0, 0);
         const cam = st.cam !== 'drawn' && CAMS.list.find(c => c.id === st.cam);
-        if (cam && camReady(cam.id)) drawTemplate(x, img, cam, CAMS.img[cam.id]);
+        if (cam) ensureCam(cam.id);
+        if (cam && camReady(cam.id)) drawTemplate(x, img, cam);
         else drawCamera(x, img); // the drawn KiraShot (also while a template is still loading)
       }
       if (flashT > 0) {
