@@ -20,6 +20,10 @@ Write a short note → get a poster for WeChat Moments or a chat. Friends long-p
 - The note travels inside the link's `#fragment`, so it's never sent to any server.
 - No web fonts or CDNs on these pages, so they load in mainland China.
 
+## Publishing
+
+Before each push run `sh scripts/bump-version.sh` — it stamps asset URLs with `?v=…` so phones never mix a new page with old cached code.
+
 ## Tests
 
 ```bash

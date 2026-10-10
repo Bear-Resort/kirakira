@@ -55,7 +55,7 @@ test('app.html keeps every element the effects engine looks up', () => {
 
 test('app.html loads every effect script', () => {
   const html = read('app.html');
-  for (const f of toolFiles) assert.ok(html.includes(`src="js/${f}"`), `app.html does not load ${f}`);
+  for (const f of toolFiles) assert.match(html, new RegExp(`src="js/${f.replace(".", "\\.")}(\\?v=\\d+)?"`), `app.html does not load ${f}`);
 });
 
 test('no CDN or Google model URLs left in the engine', () => {
