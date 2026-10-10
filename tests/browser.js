@@ -25,7 +25,7 @@
   }
   async function check(name, fn) {
     try {
-      const r = await Promise.race([fn(), sleep(15000).then(() => { throw new Error('timed out'); })]);
+      const r = await Promise.race([fn(), sleep(25000).then(() => { throw new Error('timed out'); })]);
       report(name, r !== false, typeof r === 'string' ? r : '');
     } catch (e) { report(name, false, e && e.message ? e.message : String(e)); }
   }
@@ -277,7 +277,9 @@
       assert(wheels > 0, 'no zoom');
       w.__kkShell.openSave();
       const img = d.getElementById('saveImg');
-      for (let i = 0; i < 50 && (d.getElementById('saveBox').hidden || img.naturalWidth < 100); i++) await sleep(100);
+      // wait by the clock, not by tries: background tabs slow timers down a lot
+      const t0 = Date.now();
+      while (Date.now() - t0 < 12000 && (d.getElementById('saveBox').hidden || img.naturalWidth < 100)) await sleep(100);
       assert(!d.getElementById('saveBox').hidden && img.naturalWidth > 100, 'save sheet');
       return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
     });
