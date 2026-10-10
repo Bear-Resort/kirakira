@@ -279,8 +279,11 @@
       const img = d.getElementById('saveImg');
       // wait by the clock, not by tries: background tabs slow timers down a lot
       const t0 = Date.now();
-      while (Date.now() - t0 < 12000 && (d.getElementById('saveBox').hidden || img.naturalWidth < 100)) await sleep(100);
-      assert(!d.getElementById('saveBox').hidden && img.naturalWidth > 100, 'save sheet');
+      while (Date.now() - t0 < 12000 && (d.getElementById('saveBox').hidden || !img.src.startsWith('data:image/png'))) await sleep(100);
+      assert(!d.getElementById('saveBox').hidden, 'save sheet did not open');
+      // off-screen frames may postpone decoding, so ask for it explicitly
+      try { await img.decode(); } catch (e) { /* checked below */ }
+      assert(img.naturalWidth > 100, 'saved picture is empty');
       return `${wheels} zoom steps, saved ${img.naturalWidth}px`;
     });
     if (appFrame) appFrame.remove();
